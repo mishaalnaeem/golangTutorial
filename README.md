@@ -1,0 +1,1 @@
+Following https://mehranbehnam77.medium.com/how-to-write-the-simplest-chat-server-in-golang-f70ba7abd94a
