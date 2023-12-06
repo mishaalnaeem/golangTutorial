@@ -8,8 +8,13 @@ import (
 )
 
 //mapping for clients
-var client = make(map[string]net.Conn) //string to net.Conn mapping
+var clients = make(map[string]net.Conn) //string to net.Conn mapping
 var messages = make(chan message)
+
+type message struct {
+	text string
+	address string 
+}
 
 func main() {
 	//open port to listen to
@@ -48,7 +53,7 @@ func broadcaster() {
 				if msg.address == conn.RemoteAddr().String() {
 					continue
 				}
-				fmt.fPrintln(conn, msg.text)
+				fmt.Fprintln(conn, msg.text)
 
 			}
 		}
@@ -71,15 +76,15 @@ func handler(conn net.Conn) {
 		messages <- newMessage(": "+input.Text(), conn)
 	}
 
-	delete(clients, conn.Remote().String())
+	delete(clients, conn.RemoteAddr().String())
 
 	conn.Close()
 
 }
 
 func newMessage(msg string, conn net.Conn) message {
-	addr := conn.RemoteAddr.String()
-	return {
+	addr := conn.RemoteAddr().String()
+	return message{
 		text: addr + msg,
 		address: addr,
 	}
