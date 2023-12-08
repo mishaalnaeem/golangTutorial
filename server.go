@@ -12,11 +12,11 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-var clients = make(map[string]websocket.Conn)
+var clients = make(map[string]*websocket.Conn)
 
 func main() {
-	http.HandleFunc("/echo")
-	http.HandleFunc("/", serveStaticFile)
+	http.HandleFunc("/echo", handlerConnection)
+	http.HandleFunc("/", serverStaticFile)
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
@@ -33,17 +33,19 @@ func handlerConnection(w http.ResponseWriter, r *http.Request) {
 	clients[conn.RemoteAddr().String()] = conn
 
 	go handlerClient(conn)
+}
 
-	go broadcaster()
+func deleteConection(conn *websocket.Conn) {
+	delete(clients, conn.RemoteAddr().String())
 }
 
 func handlerClient(conn *websocket.Conn) {
 
 	//for closing connection when functions exits
 	defer func() {
-		delete(clients, conn.RemoteAddr().String())
+		deleteConection(conn)
 		conn.Close()
-	}
+	}()
 
 	for {
 		msgType, msg, err := conn.ReadMessage()
@@ -52,15 +54,14 @@ func handlerClient(conn *websocket.Conn) {
 		}
 
 		fmt.Printf("%s: %s",conn.RemoteAddr().String(), string(msg))
+		go broadcaster(msgType, msg)
 	}
 }
 
-func broadcaster() {
-	for {
-		for _, client := range clients {
-			if err = client.WriteMessage(msgType, msg); err!=nil {
-				log.Fatal(err)
-			}
+func broadcaster(msgType int, msg []byte) {
+	for _, client := range clients {
+		if err := client.WriteMessage(msgType, msg); err!=nil {
+			log.Fatal(err)
 		}
 	}
 }
